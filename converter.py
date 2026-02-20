@@ -1,57 +1,51 @@
-import json
-import io
 import os
 from PIL import Image
 
 
 class ImageLogic:
     """
-    Core logic for PixelCat-Photo v0.1.0
-    Handles Pixilart parsing, standard format conversion, and SVG rasterization.
+    Core logic for PixelCat-Photo v0.1.1.
+    Handles standard format conversion, batch processing, and multi-size ICOs.
     """
 
     @staticmethod
-    def load_pixil_to_pillow(file_path):
+    def convert_single_image(input_path, output_path, output_format):
         """
-        Parses a .pixil file and converts the first frame/layer into a PIL Image.
-        """
-        try:
-            with open(file_path, 'r') as f:
-                data = json.load(f)
-
-            width = data['width']
-            height = data['height']
-
-            # Pixilart stores pixel data in a flat list: [r, g, b, a, r, g, b, a...]
-            pixel_data = data['frames'][0]['layers'][0]['pixelData']
-
-            # Convert list to bytes for Pillow
-            image = Image.frombytes('RGBA', (width, height), bytes(pixel_data))
-            return image
-        except Exception as e:
-            print(f"Error loading .pixil file: {e}")
-            return None
-
-    @staticmethod
-    def convert_image(input_path, output_path, output_format):
-        """
-        Generic converter supporting PNG, JPEG, and .pixil exports.
+        Converts a single image. Handles ICO scaling specifically.
         """
         try:
-            if input_path.lower().endswith('.pixil'):
-                img = ImageLogic.load_pixil_to_pillow(input_path)
-            else:
-                img = Image.open(input_path)
+            img = Image.open(input_path)
 
-            if img is None:
-                return False
-
-            # Handle JPEG transparency (convert RGBA to RGB)
-            if output_format.upper() in ['JPEG', 'JPG'] and img.mode == 'RGBA':
+            # Handle JPEG/BMP transparency
+            if output_format.upper() in ['JPEG', 'JPG', 'BMP'] and img.mode == 'RGBA':
                 img = img.convert('RGB')
 
-            img.save(output_path, format=output_format)
+            if output_format.upper() == 'ICO':
+                # Generate a standard multi-resolution Windows icon
+                icon_sizes = [(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
+                img.save(output_path, format='ICO', sizes=icon_sizes)
+            else:
+                img.save(output_path, format=output_format)
+
             return True
         except Exception as e:
-            print(f"Conversion error: {e}")
+            print(f"Error converting {input_path}: {e}")
             return False
+
+    @staticmethod
+    def batch_convert(input_paths, output_folder, output_format):
+        """
+        Processes multiple images and returns (success_count, total_count).
+        """
+        success_count = 0
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+
+        for path in input_paths:
+            file_name = os.path.splitext(os.path.basename(path))[0]
+            target_path = os.path.join(output_folder, f"{file_name}.{output_format.lower()}")
+
+            if ImageLogic.convert_single_image(path, target_path, output_format):
+                success_count += 1
+
+        return success_count, len(input_paths)
