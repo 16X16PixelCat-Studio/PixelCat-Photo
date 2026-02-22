@@ -1,35 +1,24 @@
 @echo off
-title PixelCat-Photo v0.1.2 Builder
-echo ========================================
-echo   Building PixelCat-Photo v0.1.2
-echo ========================================
+title PixelCat-Photo v0.2.0 Deep Clean Build
+echo Cleaning environment...
 
-:: Activate Virtual Environment
-if exist .venv\Scripts\activate.bat (
-    call .venv\Scripts\activate.bat
-)
+:: Force refresh of PyInstaller to fix DLL issues
+if exist .venv\Scripts\activate.bat call .venv\Scripts\activate.bat
+python -m pip install --upgrade pyinstaller customtkinter pillow
 
-:: Clean old build artifacts
-echo Cleaning old builds...
 if exist dist rd /s /q dist
 if exist build rd /s /q build
-if exist *.spec del /q *.spec
+del /q *.spec
 
-:: Install/Update Dependencies
-echo Checking dependencies...
-python -m pip install pyinstaller pillow tkinterdnd2
-
-:: Run the Build
-echo Starting PyInstaller...
-python -m PyInstaller --onefile --windowed ^
+echo Building v0.2.0...
+python -m PyInstaller --clean --onefile --windowed ^
 --collect-all tkinterdnd2 ^
+--collect-all customtkinter ^
 --add-data "assets;assets" ^
---icon="assets/Pixelcat-photo.png" ^
---name "PixelCat-Photo-v0.1.2" ^
+--icon="assets/Pixelcat-photo.ico" ^
+--name "PixelCat-Photo-v0.2.0" ^
 main.py
 
 echo.
-echo ========================================
-echo   Build Complete! Check the 'dist' folder.
-echo ========================================
+echo IMPORTANT: Move the EXE out of the dist folder to your Desktop before running!
 pause
